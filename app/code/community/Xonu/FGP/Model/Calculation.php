@@ -32,7 +32,6 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
             }
 
             if (Mage::getSingleton('customer/session')->isLoggedIn()) {
-
                 $customer = Mage::getSingleton('customer/session')->getCustomer();
                 if (($billingAddress = $customer->getDefaultBillingAddress())
                     && ($shippingAddress = $customer->getDefaultShippingAddress())) {
@@ -153,6 +152,18 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
         } elseif (($customerTaxClass === false) || !$customer) {
             $customerTaxClass = $this->getDefaultCustomerTaxClass($store);
         }
+
+        // fallback to the store-defaults, if the (anonymous) customer does not come with valid tax-references (it would fall down to 0%-tax in the frontend display)
+        if(is_null($address->getCountryId())) {
+            $address->setCountryId(Mage::getStoreConfig(Mage_Tax_Model_Config::CONFIG_XML_PATH_DEFAULT_COUNTRY, $store));
+        }
+        if(is_null($address->getRegionId())) {
+            $address->setRegionId(Mage::getStoreConfig(Mage_Tax_Model_Config::CONFIG_XML_PATH_DEFAULT_REGION, $store));
+        }
+        // this is kind of weird, because that would fill in a zip-code in the checkout
+        // if(is_null($address->getPostcode())) {
+        //     $address->setPostcode(Mage::getStoreConfig(Mage_Tax_Model_Config::CONFIG_XML_PATH_DEFAULT_POSTCODE, $store));
+        // }
 
         $request = new Varien_Object();
         $request
