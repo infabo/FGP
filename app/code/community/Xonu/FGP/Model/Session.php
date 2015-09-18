@@ -8,6 +8,6 @@ class Xonu_FGP_Model_Session extends Mage_Checkout_Model_Session {
     // implements hasQuote() method for Magento versions older than 1.6
     public function hasQuote()
     {
-        return isset($this->_quote);
+        return (isset($this->_quote) || (bool) $this->getQuoteId());
     }
 }
