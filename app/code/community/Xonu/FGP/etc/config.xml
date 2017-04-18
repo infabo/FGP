@@ -6,12 +6,12 @@
 */
 -->
 <config>
-	<modules>
-		<Xonu_FGP>
-			<version>2.0.1</version>
-		</Xonu_FGP>
-	</modules>
-	<global>
+    <modules>
+        <Xonu_FGP>
+            <version>2.0.1</version>
+        </Xonu_FGP>
+    </modules>
+    <global>
         <models>
             <tax>
                 <rewrite>

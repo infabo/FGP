@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @copyright (c) 2013, Pawel Kazakow <support@xonu.de>
  * @license http://xonu.de/license/ xonu.de EULA
@@ -34,7 +35,8 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
             if (Mage::getSingleton('customer/session')->isLoggedIn()) {
                 $customer = Mage::getSingleton('customer/session')->getCustomer();
                 if (($billingAddress = $customer->getDefaultBillingAddress())
-                    && ($shippingAddress = $customer->getDefaultShippingAddress())) {
+                    && ($shippingAddress = $customer->getDefaultShippingAddress())
+                ) {
 
                     // use customer addresses as origin if customer is logged in
                     $request = $this->getRateRequest(
@@ -71,17 +73,18 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
         $shippingAddress = null,
         $billingAddress = null,
         $customerTaxClass = null,
-        $store = null)
-    {
+        $store = null
+    ) {
         if ($shippingAddress === false && $billingAddress === false && $customerTaxClass === false) {
             return $this->getRateOriginRequest($store);
         }
-        $address    = new Varien_Object();
-        $customer   = $this->getCustomer();
-        $basedOn    = Mage::getStoreConfig(Mage_Tax_Model_Config::CONFIG_XML_PATH_BASED_ON, $store);
+        $address = new Varien_Object();
+        $customer = $this->getCustomer();
+        $basedOn = Mage::getStoreConfig(Mage_Tax_Model_Config::CONFIG_XML_PATH_BASED_ON, $store);
 
         if (($shippingAddress === false && $basedOn == 'shipping')
-            || ($billingAddress === false && $basedOn == 'billing')) {
+            || ($billingAddress === false && $basedOn == 'billing')
+        ) {
             $basedOn = 'default';
         } else {
             if ((($billingAddress === false || is_null($billingAddress) || !$billingAddress->getCountryId())
@@ -96,25 +99,27 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
 
                     if ($basedOn == 'billing' && $defBilling && $defBilling->getCountryId()) {
                         $billingAddress = $defBilling;
-                    } else if ($basedOn == 'shipping' && $defShipping && $defShipping->getCountryId()) {
-                        $shippingAddress = $defShipping;
                     } else {
-                        if($session->hasQuote() || $this->adminSession) {
-                            $quote = $session->getQuote();
-                            $isActive = $quote->getIsActive();
-                            if($isActive) {
-                                $shippingAddress = $quote->getShippingAddress();
-                                $billingAddress = $quote->getBillingAddress();
+                        if ($basedOn == 'shipping' && $defShipping && $defShipping->getCountryId()) {
+                            $shippingAddress = $defShipping;
+                        } else {
+                            if ($session->hasQuote() || $this->adminSession) {
+                                $quote = $session->getQuote();
+                                $isActive = $quote->getIsActive();
+                                if ($isActive) {
+                                    $shippingAddress = $quote->getShippingAddress();
+                                    $billingAddress = $quote->getBillingAddress();
+                                } else {
+                                    $basedOn = 'default';
+                                }
                             } else {
                                 $basedOn = 'default';
                             }
-                        } else {
-                            $basedOn = 'default';
                         }
                     }
                 } else {
 
-                    if($session->hasQuote() || $this->adminSession) {
+                    if ($session->hasQuote() || $this->adminSession) {
                         $quote = $session->getQuote();
                         $isActive = $quote->getIsActive();
                         if ($isActive) {
@@ -143,7 +148,8 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
                 $address
                     ->setCountryId(Mage::getStoreConfig(Mage_Tax_Model_Config::CONFIG_XML_PATH_DEFAULT_COUNTRY, $store))
                     ->setRegionId(Mage::getStoreConfig(Mage_Tax_Model_Config::CONFIG_XML_PATH_DEFAULT_REGION, $store))
-                    ->setPostcode(Mage::getStoreConfig(Mage_Tax_Model_Config::CONFIG_XML_PATH_DEFAULT_POSTCODE, $store));
+                    ->setPostcode(Mage::getStoreConfig(Mage_Tax_Model_Config::CONFIG_XML_PATH_DEFAULT_POSTCODE,
+                        $store));
                 break;
         }
 
@@ -154,10 +160,11 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
         }
 
         // fallback to the store-defaults, if the (anonymous) customer does not come with valid tax-references (it would fall down to 0%-tax in the frontend display)
-        if(is_null($address->getCountryId())) {
-            $address->setCountryId(Mage::getStoreConfig(Mage_Tax_Model_Config::CONFIG_XML_PATH_DEFAULT_COUNTRY, $store));
+        if (is_null($address->getCountryId())) {
+            $address->setCountryId(Mage::getStoreConfig(Mage_Tax_Model_Config::CONFIG_XML_PATH_DEFAULT_COUNTRY,
+                $store));
         }
-        if(is_null($address->getRegionId())) {
+        if (is_null($address->getRegionId())) {
             $address->setRegionId(Mage::getStoreConfig(Mage_Tax_Model_Config::CONFIG_XML_PATH_DEFAULT_REGION, $store));
         }
         // this is kind of weird, because that would fill in a zip-code in the checkout
@@ -172,6 +179,7 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
             ->setPostcode($address->getPostcode())
             ->setStore($store)
             ->setCustomerClassId($customerTaxClass);
+
         return $request;
     }
 
