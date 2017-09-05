@@ -17,6 +17,7 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
      *
      * @param   null|store $store
      * @return  Varien_Object
+     * @throws \Mage_Core_Model_Store_Exception
      */
     public function getRateOriginRequest($store = null)
     {
@@ -113,19 +114,18 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
         if ($shippingAddress === false && $billingAddress === false && $customerTaxClass === false) {
             return $this->getRateOriginRequest($store);
         }
+
         $address = new Varien_Object();
         $customer = $this->getCustomer();
         $basedOn = Mage::getStoreConfig(Mage_Tax_Model_Config::CONFIG_XML_PATH_BASED_ON, $store);
 
-        if (($shippingAddress === false && $basedOn === 'shipping')
-            || ($billingAddress === false && $basedOn === 'billing')
+        if (($shippingAddress === false && $basedOn === 'shipping') || ($billingAddress === false && $basedOn === 'billing')
         ) {
             $basedOn = 'default';
         } else {
-            if ((($billingAddress === false || null === $billingAddress || !$billingAddress->getCountryId())
-                    && $basedOn === 'billing')
-                || (($shippingAddress === false || null === $shippingAddress || !$shippingAddress->getCountryId())
-                    && $basedOn === 'shipping')
+            if (
+                (($billingAddress === false || null === $billingAddress || !$billingAddress->getCountryId()) && $basedOn === 'billing')
+                || (($shippingAddress === false || null === $shippingAddress || !$shippingAddress->getCountryId()) && $basedOn === 'shipping')
             ) {
                 $session = Mage::getSingleton('checkout/session');
                 if ($customer) {
@@ -168,6 +168,7 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
                 }
             }
         }
+
         switch ($basedOn) {
             case 'billing':
                 $address = $billingAddress;
@@ -193,11 +194,13 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
             $customerTaxClass = (int)$this->getDefaultCustomerTaxClass($store);
         }
 
-        // fallback to the store-defaults, if the (anonymous) customer does not come with valid tax-references (it would fall down to 0%-tax in the frontend display)
+        // fallback to the store-defaults, if the (anonymous) customer does not come with valid tax-references
+        // (it would fall down to 0%-tax in the frontend display)
         if (null === $address->getCountryId()) {
             $address->setCountryId(Mage::getStoreConfig(Mage_Tax_Model_Config::CONFIG_XML_PATH_DEFAULT_COUNTRY,
                 $store));
         }
+
         if (null === $address->getRegionId()) {
             $address->setRegionId(Mage::getStoreConfig(Mage_Tax_Model_Config::CONFIG_XML_PATH_DEFAULT_REGION, $store));
         }

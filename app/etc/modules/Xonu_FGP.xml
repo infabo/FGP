@@ -6,10 +6,13 @@
 */
 -->
 <config>
-	<modules>
-		<Xonu_FGP>
-			<active>true</active>
-			<codePool>community</codePool>
-		</Xonu_FGP>     
-	</modules>
+    <modules>
+        <Xonu_FGP>
+            <active>true</active>
+            <codePool>community</codePool>
+            <depends>
+                <Mage_Tax/>
+            </depends>
+        </Xonu_FGP>
+    </modules>
 </config>
