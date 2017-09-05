@@ -7,8 +7,6 @@
 class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
 {
     protected $adminSession = false;
-    const XML_PATH_TAX_CALCULATION_XONU_FPG_CROSS_BORDER_TRADE_ENABLED = 'tax/calculation/xonu_fpg_cross_border_trade_enabled';
-    const XML_PATH_TAX_CALCULATION_XONU_FPG_CROSS_BORDER_TRADE_VATEFREE_ENABLED = 'tax/calculation/xonu_fpg_cross_border_trade_vatfree_enabled';
 
     /**
      * Set origin to destination
@@ -21,7 +19,7 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
      */
     public function getRateOriginRequest($store = null)
     {
-        if (!Mage::getStoreConfigFlag(static::XML_PATH_TAX_CALCULATION_XONU_FPG_CROSS_BORDER_TRADE_ENABLED, $store)) {
+        if (!Mage::helper('xonu_fpg')->isCrossBorderEnabled($store)) {
             return parent::getRateOriginRequest($store);
         }
 
@@ -29,12 +27,15 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
             $this->adminSession = true; // creating order in the backend
         }
 
-        $session = $this->getSession();
-        if ($session->hasQuote() || $this->adminSession) { // getQuote() would lead to infinite loop here when switching currency
+        $session = Mage::helper('xonu_fpg')->getSession();
 
+        if ($this->adminSession || $session->hasQuote()) { // getQuote() would lead to infinite loop here when switching currency
             $quote = $session->getQuote();
 
-            if ($this->adminSession || $quote->getIsActive()) {
+            if (($this->adminSession || $quote->getIsActive())
+                && !Mage::helper('xonu_fpg')->isExcludedCountry($quote->getBillingAddress(),
+                    $quote->getShippingAddress(), $store)
+            ) {
                 // use destination of the existing quote as origin if quote exists
                 $request = $this->getRateRequest(
                     $quote->getShippingAddress(),
@@ -48,8 +49,10 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
 
             if (Mage::getSingleton('customer/session')->isLoggedIn()) {
                 $customer = Mage::getSingleton('customer/session')->getCustomer();
+
                 if (($billingAddress = $customer->getDefaultBillingAddress())
                     && ($shippingAddress = $customer->getDefaultShippingAddress())
+                    && !Mage::helper('xonu_fpg')->isExcludedCountry($billingAddress, $shippingAddress, $store)
                 ) {
                     // use customer addresses as origin if customer is logged in
                     $request = $this->getRateRequest(
@@ -62,26 +65,10 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
                     return $request;
                 }
             }
-
-            return $this->getDefaultDestination();
         }
 
         // quote is not available when switching the currency
-
         return $this->getDefaultDestination();
-
-    }
-
-    /**
-     * @return Mage_Adminhtml_Model_Session_Quote|Mage_Checkout_Model_Session|Mage_Core_Model_Abstract
-     */
-    public function getSession()
-    {
-        if ($this->adminSession) {
-            return Mage::getSingleton('adminhtml/session_quote'); // order creation in the backend
-        }
-
-        return Mage::getSingleton('checkout/session'); // default order creation in the frontend
     }
 
     /**
@@ -107,7 +94,7 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
         $customerTaxClass = null,
         $store = null
     ) {
-        if (!Mage::getStoreConfigFlag(static::XML_PATH_TAX_CALCULATION_XONU_FPG_CROSS_BORDER_TRADE_ENABLED, $store)) {
+        if (!Mage::helper('xonu_fpg')->isCrossBorderEnabled($store)) {
             return parent::getRateRequest($shippingAddress, $billingAddress, $customerTaxClass, $store);
         }
 
@@ -138,7 +125,7 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
                         if ($basedOn === 'shipping' && $defShipping && $defShipping->getCountryId()) {
                             $shippingAddress = $defShipping;
                         } else {
-                            if ($session->hasQuote() || $this->adminSession) {
+                            if ($this->adminSession || $session->hasQuote()) {
                                 $quote = $session->getQuote();
                                 $isActive = $quote->getIsActive();
                                 if ($isActive) {
@@ -153,7 +140,7 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
                         }
                     }
                 } else {
-                    if ($session->hasQuote() || $this->adminSession) {
+                    if ($this->adminSession || $session->hasQuote()) {
                         $quote = $session->getQuote();
                         $isActive = $quote->getIsActive();
                         if ($isActive) {
@@ -216,7 +203,11 @@ class Xonu_FGP_Model_Calculation extends Mage_Tax_Model_Calculation
         return $request;
     }
 
-    protected function getDefaultDestination($store = null)
+    /**
+     * @param null $store
+     * @return Varien_Object
+     */
+    public function getDefaultDestination($store = null)
     {
         $address = new Varien_Object();
         $request = new Varien_Object();
